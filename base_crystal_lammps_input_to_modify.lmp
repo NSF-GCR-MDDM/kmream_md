@@ -1,0 +1,16 @@
+ # Base file created to be used for any crystal imported by Katie Ream, @kmream. 
+ 
+ 100 atoms
+ 1 atom type
+ 
+ -100.000000000000 100.000000000000 xlo xhi
+ -100.000000000000 100.000000000000 ylo yhi
+ -100.000000000000 100.000000000000 zlo zhi
+ 
+Masses
+ 
+ 1 196.00000 # Au
+ 
+Atoms # charge
+
+#begin pasting your output from the change_letter_to_type.ipynb python notebook
