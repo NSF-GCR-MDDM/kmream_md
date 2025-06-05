@@ -3,4 +3,4 @@ This folder contains a pdf, called `Molecular_Dynamics_Comprehensive_Write_up` t
 
 Utilize the 'generate_crystal.ipynb' notebook to generate a supercell crystal from an imported .cif file of a unitcell of whatever specific crystal. If needed, trim off excess crystal that isn't rectangular such that the shape of the crystal better matches a real prepared and polished sample. This notebook also exports the .lmp file in the correct format to be uploaded into your LAMMPS script. 
 
-To answer any questions or concerns with the code or the documentation provided, please reach out to katie.ream@yale.edu or emlavoie@umich.edu. 
+To answer any questions or concerns with the code or the documentation provided, please reach out to katie.ream@yale.edu, emlavoie@umich.edu, or wuaudrey@umich.edu.
