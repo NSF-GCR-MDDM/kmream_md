@@ -1,4 +1,6 @@
 # Molecular Dynamics Efforts Overview at the University of Michigan
 This folder contains a pdf, called `Molecular_Dynamics_Comprehensive_Write_up` that is a writeup on how to build up a molecular dynamics (MD) based simulation using the LAMMPS software for the context of ion irradiation of crystalline structures. The order of which to run these files is given in this writeup. The output of the LAMMPS simulations is to be loaded into the OVITO software available online, which more information is once again given in the writeup. The output from OVITO after applying the proper modifiers is then loaded into the  `md_vacancies.ipynb` notebook for post-processing of the total number of Frenkel pairs,calculation of the track width as a function of depth into the crystal, and the total track length. 
 
+Utilize the 'generate_crystal.ipynb' notebook to generate a supercell crystal from an imported .cif file of a unitcell of whatever specific crystal. If needed, trim off excess crystal that isn't rectangular such that the shape of the crystal better matches a real prepared and polished sample. This notebook also exports the .lmp file in the correct format to be uploaded into your LAMMPS script. 
+
 To answer any questions or concerns with the code or the documentation provided, please reach out to kmream@umich.edu.
