@@ -1,0 +1,13 @@
+This is a daily tracker of U-M progress made in MD simulations.
+Do not delete previous entries, especially from other users. 
+This log should be appended by U-M members, and other institutions should make their own log (for now, at least).
+Please follow the format listed below to append an update to this file. 
+
+ENTRY FORMATTING:
+date/time: MM/DD/YYYY HH:MM
+author: firstname lastname
+corresponding input script (if applicable): <name of .in file someone could find on your branch>
+notes:
+- bullet point style summary of things that you tried
+- things that did or didn't work
+- etc.
