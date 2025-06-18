@@ -1,4 +1,4 @@
-This folder contains .cif files to use with the python script to generate crystal files for use in LAMMPS.
+This folder contains .cif files to use with the create_and_format_crystal_files python script to generate crystal files for use in LAMMPS.
 The .cif file names are formatted as so: type of crystal 
                                         + temperature at which the sample the cif file is based on was kept at (if the information was given)
                                         + id of the cif file in the crystallography open database.
