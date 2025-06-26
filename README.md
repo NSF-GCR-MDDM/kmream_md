@@ -3,4 +3,6 @@ This folder contains a pdf, called `Molecular_Dynamics_Comprehensive_Write_up` t
 
 Utilize the 'generate_crystal.ipynb' notebook to generate a supercell crystal from an imported .cif file of a unitcell of whatever specific crystal. If needed, trim off excess crystal that isn't rectangular such that the shape of the crystal better matches a real prepared and polished sample. This notebook also exports the .lmp file in the correct format to be uploaded into your LAMMPS script. 
 
+If there is interest to test out the latest version of a working 100 keV gold ion irradiating crystalline quartz, download the files from the folder `gold_quartz_complete_sim_items` and download the crystal file `quartz_supercell_7653450.lmp` - or make your own using the  `generate_crystal.ipynb` notebook.
+
 To answer any questions or concerns with the code or the documentation provided, please reach out to katie.ream@yale.edu, emlavoie@umich.edu, or wuaudrey@umich.edu.
