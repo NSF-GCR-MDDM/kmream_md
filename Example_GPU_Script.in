@@ -11,8 +11,8 @@ neigh_modify binsize 2.0
 neigh_modify every 2 delay 10 check yes one 10000 page 1000000
 
 units metal
-atom_style charge
-boundary p m p #deleted space between the two lines
+atom_style atomic
+boundary p m p    # m for the direction you're shooting the ion in
 read_data quartz_cell_cut_600k.lmp
 
 ### WHAT YOU'RE DOING
@@ -21,8 +21,6 @@ variable material string SiO2_600k
 variable ion string Si
 variable direction string ydir
 variable energy string 100keV
-
-#deleted masses from within lammps script
 
 pair_style tersoff/zbl/gpu
 pair_coeff * * 2007_SiO_tersoff.zbl Si O Si
