@@ -1,0 +1,130 @@
+# uploaded by emlavoie@umich.edu on 10/23/2025
+# this is the most updated LAMMPS input file - simulates 100 keV Au ion implantation into SiO2
+# relevant files for lattice and potential also included in folder
+
+## DEFINE UNITS, LATTICE STYLE, BOUNDARY CONDITIONS
+units metal
+atom_style atomic
+boundary p m p
+
+## IMPORT LATTICE FILE
+read_data quartz_atm.lmp
+
+## DEFINE SIMULATION VARIABLES
+variable date string 2025_10_23 #YYYY_MM_DD
+variable crystal string quartz_atm
+variable ion string Au
+variable direction string y11NE
+variable energy string 100keV
+variable time string 30ps
+variable seed equal 50839
+
+## DEFINE POTENTIALS
+#pair_style zbl 0.1 1.5
+pair_style hybrid/overlay zbl 0.1 1.5 tersoff #lj/cut 2.0 #Si02 bond length 1.61A
+pair_coeff * * tersoff 2007_SiO.tersoff Si O NULL
+
+## COEFFS FOR ZBL POTENTIAL (REPULSIVE)
+pair_coeff 1 1 zbl 14.0 14.0
+pair_coeff 1 2 zbl 14.0 8.0
+pair_coeff 1 3 zbl 14.0 79.0
+pair_coeff 2 2 zbl 8.0 8.0
+pair_coeff 2 3 zbl 8.0 79.0
+pair_coeff 3 3 zbl 79.0 79.0
+
+
+### BEGIN INITIAL TEMPERATURE SETTING AND MINIMIZATION
+minimize 1e-12 1e-12 1500 1500
+
+## INITIALIZE VELOCITIES AT ROOM TEMP & LET LATTICE RELAX/AVG OUT HIGH VEL
+velocity all create 300.0 ${seed} mom yes rot yes dist gaussian loop geom
+print "velocity seed number: ${seed}"
+fix equil all nvt temp 300.0 300.0 100.0
+run 4000
+unfix equil
+
+####    MAKE SURE TO UPDATE THERMAL LAYER DIMENSIONS IF YOU CHANGE ANY LATTICE SIZE/COORDINATES
+
+### DEFINE THERMAL LAYER (HEAT SINK -- MIMICKS INFINITE LATTICE)
+region thermal_layer_xlo block -200 -195 INF INF INF INF units box
+region thermal_layer_xhi block 195 200 INF INF INF INF units box
+region thermal_layer_zlo block INF INF INF INF -200 -195 units box# Create initial velocities at 300K
+region thermal_layer_zhi block INF INF INF INF 195 200 units box
+velocity all create 300.0 ${seed} mom yes rot yes dist gaussian loop geom
+region thermal_layer_union union 4 thermal_layer_xlo thermal_layer_xhi thermal_layer_zlo thermal_layer_zhi
+group thermal_atoms region thermal_layer_union
+
+# APPLY TEMPERATURE CONTROL WITH fix temp/berendson TO THERMAL LAYER
+fix phonon_damp thermal_atoms langevin 300.0 300.0 100.0 ${seed} zero yes  # Temperature control at 300K with damping of 100 steps
+
+### END THERMAL LAYER
+
+## CREATE INBOUND ION
+# (ensure the particle's position resides within the previously set world boundaries)
+group incoming type 3
+variable incoming_x_pos equal 0.0
+variable incoming_y_pos equal -210.0
+variable incoming_z_pos equal 0.0
+create_atoms 3 single ${incoming_x_pos} ${incoming_y_pos} ${incoming_z_pos}
+
+run 0
+group incoming type 3
+
+# DEFINE ION ENERGY IN eV
+variable eV equal 100000
+variable atom_mass equal 196.96657
+
+
+# COMPUTE ION VELOCITY IN Å/ps 
+# using: v = sqrt(2 * E / m) 
+# convert eV to J: 1.609e-19 
+# convert amu to kg: 1.67*10^-27
+
+variable eV_joule equal 1.60218e-19 * ${eV}
+variable amu_kg equal 1.67377*10^-27 * ${atom_mass}
+variable velocity equal sqrt(2 * ${eV_joule} / ${amu_kg}) #velocity is now in m/s
+variable velocity_units equal ${velocity} * 0.01 #velocity is now in Å/ps, which correspond to the metals units of the simulation
+variable velocity_z equal ${velocity_units} * sin(0.191986) #7 degrees =0.122173 rad
+variable velocity_y equal ${velocity_units} * cos(0.191986) #11 degrees = 0.191986 rad
+velocity incoming set 0.0 ${velocity_y} ${velocity_z} units box #to still have the right amount of energy but also shoot at an angle
+
+### ADD ELECTRONIC STOPPING POWER IMPORT FROM SRIM
+
+fix el all electron/stopping 10.0 Au_in_SiO2_elstoptable_1GeV.txt 
+
+### END ADD ELECTRONIC STOPPING POWER
+
+# allow the inbound ion to start moving
+fix 1 all nve
+
+# adjust neighbor lists - aka how many atoms around given atom to include in calculations
+neigh_modify binsize 2.0
+neigh_modify every 1 delay 2 check yes one 1000 page 10000
+atom_modify sort 0 0.0
+
+# DEFINE TIMESTEP
+timestep 0.0001
+
+# WRITE RESULTS TO .log FILE (remember to change path!)
+log ./logfiles/${ion}_${crystal}_${energy}_${seed}_${time}_${date}.log
+
+# WRITE DATA TO .dump FILE (remember to change path!)
+dump 1 all custom 500 /data/wuaudrey/${ion}_${crystal}_${energy}_${seed}_${time}_${date}.dump id type x y z vx vy vz fx fy fz
+dump_modify 1 sort id
+
+# display certain information in the terminal after every 10 timesteps
+thermo 10
+thermo_style custom step time temp press pe ke etotal fmax
+
+# RUN SIMULATION -- INCREASING TIMESTEPS AS SIMULATION EVOLVES
+print "starting run now"
+run 5000 #.5ps
+
+dump_modify 1 every 1000
+run 45000 #4.5ps
+
+timestep 0.001
+dump_modify 1 every 5000
+run 25000 #25 ps
+
+print "run complete"
