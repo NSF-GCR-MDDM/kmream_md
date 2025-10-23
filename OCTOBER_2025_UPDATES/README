@@ -1,3 +1,10 @@
 @emlavoie 10/23/2024
 This folder includes updated input files and associated with 100 keV Au into quartz simulation.
 DUMP file associated with the run is very large -- I have included the first few hundred time steps.
+
+Also important to mention -- this is no way an "absolutely correct" simulation. 
+Interatomic potentials are still under discussion and it is very much encouraged to keep experimenting with this degree of freedom.
+If you are within the NSF GCR MDDM collaboration, it's encouraged to create your own branch on this GitHub and upload new results or summary of.
+At the very least, updated input scripts and any code associated with the manupulation of those scripts. 
+
+Please contact me if something isn't working, or if there are missing files, or if you think this repository is outdated. I will try my best to keep up with it!
