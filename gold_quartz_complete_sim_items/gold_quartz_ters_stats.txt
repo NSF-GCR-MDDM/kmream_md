@@ -1,0 +1,116 @@
+# Katie Ream gold ion shot at quartz - SHOOTING W RESPECT TO Y-AXIS
+# TYPE 1 IS SILICON
+# TYPE 2 IS OXYGEN
+# TYPE 3 IS GOLD
+
+units metal
+atom_style charge
+boundary p m p  # change the boundary letters if shooting with respect to different direction
+read_data quartz_supercell_7653450.lmp
+
+print "initializing potentials"
+
+pair_style hybrid/overlay zbl 0.1 1.5 tersoff
+pair_coeff * * tersoff 2007_SiO.tersoff Si O NULL ##### FIND AND LOAD IN YOUR OWN INTERATOMIC POTENTIAL FILE
+pair_coeff 1 1 zbl 14.0 14.0
+pair_coeff 1 2 zbl 14.0 8.0
+pair_coeff 2 2 zbl 8.0 8.0
+pair_coeff 1 3 zbl 14.0 79.0
+pair_coeff 2 3 zbl 8.0 79.0
+pair_coeff 3 3 zbl 79.0 79.0
+
+##### BEGIN INITIAL TEMPERATURE SETTING AND MINIMIZATION
+minimize 1e-22 1e-22 5000 5000
+
+# Create initial velocities at 300K
+variable seed equal 30000 #used to be 12345 now 54321, recall this to compare results
+velocity all create 300.0 ${seed} mom yes rot yes dist gaussian loop geom
+
+print "velocity seed number: ${seed}"
+
+fix equil all nvt temp 300.0 300.0 100.0
+run 10000
+unfix equil
+
+##### END INIT TEMP
+
+##### BEGIN THERMAL LAYER
+
+print "initializing thermal layer"
+
+region thermal_layer_xlo block -200 -190 INF INF INF INF units box # used to be -45 -40
+region thermal_layer_xhi block 190 200 INF INF INF INF units box
+region thermal_layer_zlo block INF INF INF INF -200 -190 units box# Create initial velocities at 300K
+region thermal_layer_zhi block INF INF INF INF 190 200 units box #used to be 110 115
+velocity all create 300.0 ${seed} mom yes rot yes dist gaussian loop geom
+region thermal_layer_union union 4 thermal_layer_xlo thermal_layer_xhi thermal_layer_zlo thermal_layer_zhi
+group thermal_atoms region thermal_layer_union
+
+# Apply the temperature control with fix temp/berendson to the thermal layer
+fix phonon_damp thermal_atoms langevin 300.0 300.0 100.0 ${seed} zero yes  # Temperature control at 300K with damping of 100 steps
+
+##### END THERMAL LAYER
+
+print "creating gold ion"
+
+# Create incoming gold ion
+group incoming type 3
+variable incoming_x_pos equal 0
+incoming_y_pos equal 375
+variable incoming_z_pos equal 0
+create_atoms 3 single ${incoming_x_pos} ${incoming_y_pos} ${incoming_z_pos}
+variable num_incoming equal count(incoming)
+
+group incoming type 3
+run 0
+# Define energy in eV
+variable eV equal 100000
+variable atom_mass equal 196.96655
+
+# Compute velocity in Å/ps using: v = sqrt(2 * E / m)
+#convert eV to J: 1.609e-19
+#convert amu to kg: 1.67*10^-27
+variable eV_joule equal 1.60218e-19 * ${eV}
+variable amu_kg equal 1.67377*10^-27 * ${atom_mass}
+variable velocity equal sqrt(2 * ${eV_joule} / ${amu_kg}) #velocity is now in m/s
+variable velocity_units equal ${velocity} * 0.01 #velocity is now in Å/ps, which correspond to the metals units of the simulation
+
+# Compute slight x tilt so the ion is shot in with ~ 7 degree angle 
+variable tilt equal 0.078 * ${velocity_units}
+
+# Set velocity of group 'incoming' at an angle
+velocity incoming set -${tilt} -${velocity_units} 0.0 units box
+##### ADD ELECTRONIC STOPPING POWER
+
+fix el all electron/stopping 10.0 Au_in_SiO2_elstoptable_1MeV ##### GENERATE INPUT STOPPING TABLE USING SRIM
+
+##### END ADD ELECTRONIC STOPPING POWER
+
+fix 1 all nve
+timestep 0.0001
+neighbor 2.0 bin
+#neigh_modify delay 0 every 1 check yes one 20000 binsize 10.0
+neigh_modify delay 10 every 5 check yes one 5000 binsize 10.0  # Less frequent neighbor rebuilds
+neigh_modify binsize 10.0
+
+variable date string 1_1_2025
+variable material string quartz
+variable ion string gold
+variable direction string ydir
+variable energy string 100kev
+
+#write the data to .dump file and .log file; display the updates in the terminal after each 10 time steps 
+##### MODIFY OUTPUT PATH AS NEEDED
+log /path/desired/${ion}_${material}_${date}_${energy}_${direction}_${seed}.log
+dump 1 all custom 100 /path/desired/${ion}_${material}_${date}_${energy}_${direction}_${seed}.dump id type x y z vx vy vz
+
+dump_modify 1 sort id
+thermo 10
+thermo_style custom step time temp press pe ke etotal fmax
+thermo_modify lost ignore
+
+run 2000
+
+dump_modify 1 every 1000
+
+run 100000                                                                                           

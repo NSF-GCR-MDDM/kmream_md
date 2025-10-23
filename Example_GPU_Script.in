@@ -1,0 +1,147 @@
+# emlavoie 6/12/2025
+# wuaudrey 6/17/2025
+# SILICON ion shot at quartz - SHOOTING W RESPECT TO Y-AXIS
+# TYPE 1 IS SILICON
+# TYPE 2 IS OXYGEN
+# TYPE 3 IS SILICON 
+
+### THIS IS ONLY NEEDED FOR GPU/CPU JOINT RUNS
+package gpu 1 # this needs to be BEFORE the read_data command
+neigh_modify binsize 2.0
+neigh_modify every 2 delay 10 check yes one 10000 page 1000000
+
+units metal
+atom_style atomic
+boundary p m p    # m for the direction you're shooting the ion in
+read_data quartz_cell_cut_600k.lmp
+
+### WHAT YOU'RE DOING
+variable date string 2025_06_24 #YYYY_MM_DD
+variable material string SiO2_600k
+variable ion string Si
+variable direction string ydir
+variable energy string 100keV
+
+pair_style tersoff/zbl/gpu
+pair_coeff * * 2007_SiO_tersoff.zbl Si O Si
+
+# this handles ALL interactions between Si and O in the system, including the regular lattice potential
+# and the short-range repulsion during secondary cascades creating the track between the Si and O
+
+#minimize etol ftol maxiter maxeval
+minimize 1e-4 1e-4 10000 100000
+
+# Create initial velocities at 300K
+variable seed equal 56789
+velocity all create 300.0 ${seed} mom yes rot yes dist gaussian loop geom
+
+print "velocity seed number: ${seed}"
+
+fix equil all nvt temp 300.0 300.0 100.0
+run 50000 # 5 ps
+unfix equil
+
+### THIS IS ONLY NEEDED FOR GPU/CPU JOINT RUNS
+package gpu 0
+neigh_modify binsize 2.0
+neigh_modify every 1 delay 2 check yes one 1000000 page 10000000
+atom_modify sort 0 0.0
+
+##### BEGIN THERMAL LAYER
+region thermal_layer_xlo block -100 -95 INF INF INF INF units box #was -44 -39
+region thermal_layer_xhi block 95 100 INF INF INF INF units box #was 61 66
+region thermal_layer_zlo block INF INF INF INF -100 -95 units box #was -118 -113
+region thermal_layer_zhi block INF INF INF INF 95 100 units box  #was 123 128
+velocity all create 300.0 ${seed} mom yes rot yes dist gaussian loop geom
+
+region thermal_layer_union union 4 thermal_layer_xlo thermal_layer_xhi thermal_layer_zlo thermal_layer_zhi
+group thermal_atoms region thermal_layer_union
+# Apply the temperature control with fix temp/berendson to the thermal layer
+fix phonon_damp thermal_atoms langevin 300.0 300.0 100.0 ${seed} zero yes  # Temperature control at 300K with damping of 100 steps
+
+##### END THERMAL LAYER
+
+# Create incoming silicon ion
+group incoming type 3
+variable incoming_x_pos equal 0.0 #made them not floats
+variable incoming_y_pos equal 120.0
+variable incoming_z_pos equal 0.0
+
+#removed incoming region
+create_atoms 3 single ${incoming_x_pos} ${incoming_y_pos} ${incoming_z_pos} 
+
+
+variable num_incoming equal count(incoming)
+run 0
+group incoming type 3
+
+# Define energy in eV
+variable eV equal 100000
+variable atom_mass equal 28.0855
+
+# Compute velocity in Å/ps using: v = sqrt(2 * E / m)
+#convert eV to J: 1.609e-19
+#convert amu to kg: 1.67*10^-27
+variable eV_joule equal 1.60218e-19 * ${eV}
+variable amu_kg equal 1.67377*10^-27 * ${atom_mass}
+variable velocity equal sqrt(2 * ${eV_joule} / ${amu_kg}) #velocity is now in m/s
+variable velocity_units equal ${velocity} * 0.01 #velocity is now in Å/ps, which correspond to the metals units of the simulation
+
+# Compute slight x tilt so the ion is shot in with ~ 7 degree angle 
+#variable tilt equal 0.0 #0.078 * ${velocity_units}
+
+# Set velocity of group 'incoming' at an angle
+velocity incoming set 0.0 -${velocity_units} 0.0 units box
+
+##### ADD ELECTRONIC STOPPING POWER
+
+fix el all electron/stopping 10.0 Si_in_SiO2_stoppingtable ##### GENERATE INPUT STOPPING TABLE USING SRIM
+
+##### END ADD ELECTRONIC STOPPING POWER
+
+fix 1 all nve
+fix thermal_int thermal_atoms nve
+
+timestep 0.0001
+
+### IF NOT DOING A GPU/CPU JOINT RUN INCLUDE THIS
+#neigh_modify binsize 2.0
+#neigh_modify every 1 delay 2 check yes one 1000000 page 10000000
+#atom_modify sort 0 0.0
+
+#write the data to .dump file and .log file; display the updates in the terminal after each 10 time steps 
+##### MODIFY OUTPUT PATH AS NEEDED
+log /home/wuaudrey/gpu/output/${ion}_${material}_${energy}_${seed}_${date}.log
+
+
+variable dump_steps_str string 500
+variable dump_steps equal 500
+
+print "dump file created"
+dump 1 all custom ${dump_steps} /data/wuaudrey/${ion}_${material}_${energy}_${seed}_${date}_${dump_steps_str}.dump id type x y z vx vy vz
+dump_modify 1 sort id
+thermo 10
+thermo_style custom step time temp press pe ke etotal fmax
+thermo_modify lost ignore
+
+print "run started"
+timestep 0.00005
+run 2000
+timestep 0.0001
+run 998000
+print "run complete"
+
+# 100 ps
+
+
+
+
+
+
+
+
+
+
+## SCRATCH
+#pair_style tersoff/zbl/gpu 2007_SiO_tersoff.zbl Si O NULL
+#pair_coeff * * tersoff 2007_SiO.tersoff Si O NULL

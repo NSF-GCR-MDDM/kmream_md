@@ -1,0 +1,21 @@
+This folder contains .cif files to use with the create_and_format_crystal_files python script to generate crystal files for use in LAMMPS.
+The .cif file names are formatted as so: type of crystal 
+                                        + temperature at which the sample the cif file is based on was kept at (if the information was given)
+                                        + id of the cif file in the crystallography open database.
+Information for the citations needed for each file can be found below:
+                                                                                                                
+**Diamond_9008564**
+Wyckoff, R. W. G.
+Second edition. Interscience Publishers, New York, New York
+Crystal Structures, 1963, 1, 7-83
+                                                                                                                
+**Fosterite_296K_9000535**
+Hazen, R. M.
+Effects of temperature and pressure on the crystal structure of forsterite T = 350 C P = 1 atm olivine
+American Mineralogist, 1976, 61, 1280-1293
+                                                                                                                
+**Quartz_298K_9005017**
+Kihara, K.
+An X-ray study of the temperature dependence of the quartz structure Sample: at T = 298 K
+European Journal of Mineralogy, 1990, 2, 63-77
+                                                                                                                
